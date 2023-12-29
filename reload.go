@@ -2,7 +2,6 @@ package embedshim
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -89,7 +88,7 @@ func (manager *TaskManager) loadTasks(ctx context.Context) error {
 }
 
 func (manager *TaskManager) loadShim(ctx context.Context, bundle *pkgbundle.Bundle) (_ *shim, retErr error) {
-	init, err := renewInitProcess(bundle)
+	init, err := renewInitProcess(ctx, bundle)
 	if err != nil {
 		return nil, err
 	}
@@ -124,17 +123,14 @@ func renewShim(manager *TaskManager, init *initProcess) *shim {
 	return s
 }
 
-func renewInitProcess(bundle *pkgbundle.Bundle) (*initProcess, error) {
+func renewInitProcess(ctx context.Context, bundle *pkgbundle.Bundle) (*initProcess, error) {
 	init, err := newInitProcess(bundle)
 	if err != nil {
 		return nil, err
 	}
-
-	pid, err := newInitPidFile(bundle).Read()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read container pidfile: %w", err)
+	if err = init.reload(ctx); err != nil {
+		return nil, err
 	}
 
-	init.pid = pid
 	return init, nil
 }
